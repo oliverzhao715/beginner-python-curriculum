@@ -1,32 +1,25 @@
 # Problem 1
-# Count and print how many times "Alex" appears in the list.
-names = ["Liam", "Alex", "Sophie", "Alex", "Mia"]
-print(names)
+# Write a function that returns the number 42 and print the result.
 
 
 
 # Problem 2
-# Search for "elephant" in the list and print if it's found.
-animals = ["zebra", "giraffe", "lion", "tiger"]
-print(animals)
+# Write a function called calculate_perimeter that takes two parameters: length and width.
+# The function should return the perimeter of a rectangle (2 * (length + width)).
 
 
 
 # Problem 3
-# Count and print how many scores are 100.
-scores = [95, 100, 88, 100, 77, 92]
-print(scores)
+# Create a variable for a fruit, then print it.
+# Modify it inside a function and print it again.
 
 
 
 # Problem 4
-# Search for the color "blue" in the list and print its index if it's found.
-colors = ["red", "green", "blue", "yellow"]
-print(colors)
+# Use a while loop to print the even numbers from 2 to 12 (inclusive).
 
 
 
 # Problem 5
-# Count and print how many temperatures in the list are below zero.
-temperatures = [3, -2, 5, -7, 0, 4, -1]
-print(temperatures)
+# Create a list of your three favorite animals.
+# Use a while loop to print each animal with the text "is awesome!" after it.

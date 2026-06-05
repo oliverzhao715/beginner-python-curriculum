@@ -19,18 +19,13 @@
 
 
 # Problem 4
-# Use the random module to generate a random number between 1 and 6 (inclusive).
-# If the number is greater than 4, print "High roll!",
-# otherwise print "Low roll!".
+# Ask for age and height.
+# If age is at least 10 AND height is at least 120 cm, print "You can ride!"
+# Otherwise, print "Sorry, you can't ride."
 
 
 
 # Problem 5
-# Ask the user for their test score (0-100).
-# Print the grade based on score:
-#   90 and above: "A"
-#   80 to 89: "B"
-#   70 to 79: "C"
-#   60 to 69: "D"
-#   below 60: "F"
-# Use nested if or elif statements.
+# Ask the user for a number.
+# If it's divisible by 3 AND (either less than 0 OR greater than 100), print "Weird number!"
+# Otherwise, print "Normal number."

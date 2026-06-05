@@ -1,34 +1,27 @@
-import random
-
 # Problem 1
-# Create a list of 3 operating systems.
-# Print the last one using len().
-# Then reverse the list and print it.
+# Search the list and print whether "tiger" is found.
+animals = ["cat", "dog", "tiger", "lion"]
 
 
 
 # Problem 2
-# Create a list of 4 school subjects.
-# Print the second subject.
-# Then sort them alphabetically and print the result.
+# Count how many words have length greater than 5.
+words = ["python", "cat", "elephant", "dog", "computer"]
 
 
 
-# Problem 3 
-# Create a list of 5 error codes.
-# Print how many there are.
-# Then find the index of "403" and print it.
+# Problem 3
+# Find and print the sum of all the numbers greater than 25 in the list.
+numbers = [10, 32, 27, 8, 50]
 
 
 
-# Problem 4 
-# Create a list of 2 programming languages.
-# Print a random one.
-# Then append another language and print the list.
+# Problem 4
+# Find and print the biggest number in the list.
+numbers = [12, 7, 33, 5]
 
 
 
 # Problem 5
-# Create a list of 6 passwords.
-# Print the one in the middle using len().
-# Then remove the first password in the list and print it.
+# Find and print the biggest number less than 100 in the list.
+numbers = [104, 99, 86, 120, 101]

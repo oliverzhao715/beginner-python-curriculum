@@ -1,32 +1,25 @@
 # Problem 1
-# Count and print how many time "dog" appears in the list.
-pets = ["dog", "cat", "dog", "hamster", "dog", "parrot"]
-print(pets)
+# Write a function that returns your favorite fruit and print it.
 
 
 
 # Problem 2
-# Count and print how many numbers are odd in the list (a number is odd if it's not divisible by 2).
-numbers = [8, 3, 12, 7, 4, 11]
-print(numbers)
+# Write a function that takes one parameter num.
+# The function should return the value of num multiplied by 2.
 
 
 
 # Problem 3
-# Search for "monkey" in the list and print its index if it's found.
-zoo = ["lion", "elephant", "monkey", "giraffe", "zebra"]
-print(zoo)
+# Create a variable for a book, then print it.
+# Modify it inside a function and print it again.
 
 
 
 # Problem 4
-# Search for 99 in the list and print if it’s found.
-numbers = [10, 45, 32, 99, 60, 5]
-print(numbers)
+# Use a while loop to print the numbers from 1 to 7 (inclusive).
 
 
 
 # Problem 5
-# Count and print how many numbers are even in the list (a number is odd if it's divisible by 2).
-numbers = [13, 22, 8, 19, 6, 7]
-print(numbers)
+# Use a while loop to print each element in the list.
+items = ["chair", "table", "desk"]

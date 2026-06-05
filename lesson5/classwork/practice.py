@@ -1,34 +1,27 @@
-import random
-
 # Problem 1
-# Create a list of 4 car brands.
-# Print the first and last.
-# Then add another brand using append() and print the updated list.
+# Search the list and print whether "banana" is found.
+fruits = ["apple", "orange", "banana", "grape"]
 
 
 
 # Problem 2
-# Create a list of 5 numbers.
-# Print the number at index 2.
-# Then insert a new number at index 2 and print the updated list.
+# Count how many numbers are greater than 10 in the list.
+numbers = [4, 18, 2, 30, 7, 12]
 
 
 
 # Problem 3
-# Create a list of 3 cities.
-# Print the length of the list.
-# Then remove one city and print the updated list.
+# Find and print the total sum of all the numbers in the list.
+numbers = [4, 11, 22, -6, 3]
 
 
 
 # Problem 4
-# Create a list of 6 file extensions.
-# Print a random one.
-# Then pop one at index 3 and print the updated list.
+# Find and print the biggest number in the list.
+numbers = [-9, 17, 5, -3, 0]
 
 
 
 # Problem 5
-# Create a list of 8 names.
-# Print the one at the middle index using len().
-# Then count how many times a specific name appears.
+# Find and print the sum of only the even numbers in the list. 
+numbers = [8, 3, 15, 22, 11, 6]
