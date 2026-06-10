@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Understars — Undertale-style Battle Demo</title>
+  <style>
+    /* Retro / Undertale-ish UI tweaks */
+    html,body{height:100%;margin:0;background:#050510;color:#e6f3ff;font-family:monospace}
+    .wrap{display:flex;flex-direction:column;align-items:center;padding:12px}
+    canvas{background:#071021;border:3px solid #17324a;border-radius:6px}
+    .hud{margin:8px 0;display:flex;gap:12px;align-items:center}
+    .dialogue{width:640px;height:78px;background:#071021;border:3px solid #17324a;border-radius:6px;margin-top:10px;padding:10px;box-sizing:border-box;color:#e6f3ff}
+    .dialogue .text{font-family:monospace;font-size:15px;line-height:1.2}
+    .menu{display:flex;gap:10px;margin-top:8px}
+    .menu .btn{background:#071b29;padding:8px 12px;border:2px solid #133142;color:#9fb2c8;cursor:pointer;font-family:monospace}
+    .menu .btn.active{background:#1b4158;color:#fff;border-color:#6fd0ff}
+    .note{font-size:12px;opacity:.9}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h2>Understars — Undertale-style Battle Demo</h2>
+    <div class="hud">
+      <div id="bossArea" style="display:flex;gap:12px;align-items:center">
+        <div style="width:160px">
+          <div id="bossName">The Hollow Guardian</div>
+          <div id="bossPortrait" style="width:140px;height:84px;background:#0f1720;border:2px solid #183248;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#9fb2c8">
+            <canvas id="portraitCanvas" width="140" height="84"></canvas>
+          </div>
+        </div>
+        <div id="bossLine">Guardian: ...</div>
+      </div>
+    </div>
+
+    <canvas id="game" width="640" height="240"></canvas>
+
+    <div class="dialogue"><div id="dialogText" class="text">A strange guardian appears.</div></div>
+
+    <div class="menu">
+      <button id="fightBtn" class="btn">FIGHT</button>
+      <button id="actBtn" class="btn">ACT</button>
+      <button id="itemBtn" class="btn">ITEM</button>
+      <button id="mercyBtn" class="btn">MERCY</button>
+    </div>
+
+    <div style="margin-top:6px;color:#9fb2c8">Copy/paste into CodePen or open locally (serve with python -m http.server).</div>
+  </div>
+
+  <script>
+  // ====== Setup ======
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false; // pixel look
+  const W = canvas.width, H = canvas.height;
+
+  // portrait canvas
+  const pCanvas = document.getElementById('portraitCanvas');
+  const pCtx = pCanvas.getContext('2d');
+  let portraitState = 'idle'; // idle,dodge,hit,dead
+
+  // battle box
+  const BB = {x: 72, y: 40, w: 496, h: 144}; // smaller canvas area to feel Undertale
+
+  // heart (pixel) - will draw pixel heart grid
+  const heart = {x: BB.x + BB.w/2, y: BB.y + BB.h/2, size:12, hp:6, flash:0};
+  let keys = {};
+
+  // boss
+  const boss = {name:'The Hollow Guardian', phase:1, hp:60, maxHp:60};
+  const bossLines = [
+    "You woke it from its slumber.",
+    "It watches with a single eye.",
+    "Do you truly wish to fight?"
+  ];
+
+  // state machine: menu -> telegraph -> attack -> menu
+  let state = 'menu';
+  let dialogQueue = [];
+  const dialogEl = document.getElementById('dialogText');
+
+  // telegraph / attack
+  let telegraph = null; // {type,x,y,ticks}
+  let projectiles = [];
+
+  // audio
+  let audioCtx = null;
+  function ensureAudio(){ if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }
+  function playTone(freq, duration=0.08, vol=0.05){ ensureAudio(); const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); o.type='sine'; o.frequency.value=freq; g.gain.value=vol; o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+duration); }
+
+  // telegraphed attack patterns
+  function planTelegraph(action){
+    // choose attack pattern by name
+    if(action==='fight'){
+      // boss prepares big shards sweep
+      const y = BB.y + 20 + Math.floor(Math.random()*4)*(BB.h-40)/4;
+      telegraph = {type:'shards', x:null, y, ticks:60, color:'#8bd3ff'}; // 1s telegraph
+    } else if(action==='act'){
+      const laneX = BB.x + 30 + Math.floor(Math.random()*6)*((BB.w-60)/6);
+      telegraph = {type:'spikes', x:laneX, y:BB.y+BB.h+6, ticks:50, color:'#6fb1ff'};
+    } else if(action==='mercy'){
+      const y = BB.y + 10 + Math.random()*(BB.h-20);
+      telegraph = {type:'vine_laser', x:BB.x-40, y, ticks:70, color:'#6fb1ff'};
+    } else { // item or default
+      const y = BB.y + 20 + Math.random()*(BB.h-40);
+      telegraph = {type:'shards', x:null, y, ticks:60, color:'#8bd3ff'};
+    }
+  }
+
+  // spawn actual projectiles after telegraph ends
+  function spawnFromTelegraph(){
+    if(!telegraph) return;
+    const t = telegraph;
+    if(t.type==='shards'){
+      const fromLeft = Math.random()<0.5;
+      for(let i=0;i<6;i++){
+        const yy = t.y + (i-3)*8 + (Math.random()*6-3);
+        projectiles.push({type:'shard', x: fromLeft? -16: W+16, y: yy, vx: fromLeft? 3.5: -3.5, symbol:'*', color:t.color});
+      }
+    } else if(t.type==='spikes'){
+      for(let i=0;i<4;i++) projectiles.push({type:'spike', x: t.x, y: t.y + i*12, vy:-6, symbol:'^', color:t.color});
+    } else if(t.type==='vine_laser'){
+      for(let i=0;i<3;i++) projectiles.push({type:'vine', x: t.x - i*40, y: t.y + i*6, vx:6.8, symbol:'~', color:t.color});
+    }
+    playTone(220,0.08,0.08);
+    telegraph = null;
+    state = 'attack';
+  }
+
+  // draw telegraph marker
+  function drawTelegraph(){
+    if(!telegraph) return;
+    const t = telegraph;
+    ctx.save();
+    ctx.globalAlpha = 0.9 + Math.sin(Date.now()/80)*0.1;
+    ctx.strokeStyle = t.color; ctx.lineWidth = 2; ctx.setLineDash([6,4]);
+    if(t.type==='shards'){
+      ctx.beginPath(); ctx.moveTo(BB.x, t.y); ctx.lineTo(BB.x+BB.w, t.y); ctx.stroke();
+      ctx.fillStyle = t.color; ctx.font='14px monospace'; ctx.fillText(Math.ceil(t.ticks/60+0.1), BB.x+BB.w-24, t.y-8);
+    } else if(t.type==='spikes'){
+      ctx.beginPath(); ctx.rect(t.x-10, BB.y, 20, BB.h); ctx.stroke(); ctx.fillStyle=t.color; ctx.fillText(Math.ceil(t.ticks/60+0.1), t.x-6, BB.y+14);
+    } else if(t.type==='vine_laser'){
+      ctx.beginPath(); ctx.moveTo(BB.x, t.y); ctx.lineTo(BB.x+BB.w, t.y); ctx.stroke(); ctx.fillStyle=t.color; ctx.fillText(Math.ceil(t.ticks/60+0.1), BB.x+BB.w-24, t.y-8);
+    }
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+
+  // typed dialogue helper
+  function enqueueDialog(lines){ dialogQueue.push(...lines); if(state!=='dialog') showNextDialog(); }
+  function showNextDialog(){ if(dialogQueue.length===0){ state='menu'; return; } state='dialog'; const line = dialogQueue.shift(); typeText(line, ()=>{ setTimeout(showNextDialog, 600); }); }
+  function typeText(txt, cb){ dialogEl.textContent=''; let i=0; const speed=18; function step(){ if(i<=txt.length){ dialogEl.textContent = txt.slice(0,i); i++; setTimeout(step, speed); } else cb&&cb(); } step(); }
+
+  // draw pixel heart
+  function drawPixelHeart(x,y,sz,flash){
+    const cols = [[0,1,1,0],[1,1,1,1],[1,1,1,1],[0,1,1,0]]; // 4x4 scaled
+    const scale = Math.round(sz/4);
+    for(let ry=0;ry<4;ry++){
+      for(let rx=0;rx<4;rx++){
+        if(cols[ry][rx]){
+          ctx.fillStyle = flash? '#fff':'#ff3b3b';
+          ctx.fillRect(x - 2*scale + rx*scale, y - 2*scale + ry*scale, scale, scale);
+        }
+      }
+    }
+  }
+
+  // portrait drawing
+  function drawPortrait(){
+    const w=pCanvas.width, h=pCanvas.height; pCtx.clearRect(0,0,w,h);
+    pCtx.fillStyle='#0f1720'; pCtx.fillRect(0,0,w,h);
+    const cx=w/2, cy=h/2;
+    pCtx.fillStyle='#c6f0ff'; pCtx.beginPath(); pCtx.arc(cx,cy,26,0,Math.PI*2); pCtx.fill();
+    pCtx.fillStyle='#072233';
+    if(portraitState==='idle'){
+      pCtx.beginPath(); pCtx.arc(cx,cy-2,8,0,Math.PI*2); pCtx.fill();
+      pCtx.fillStyle='#9fb2c8'; pCtx.beginPath(); pCtx.arc(cx,cy-2,3.5,0,Math.PI*2); pCtx.fill();
+    } else if(portraitState==='dodge'){
+      pCtx.fillStyle='#072233'; pCtx.fillRect(cx-12, cy-8, 24, 6);
+    } else if(portraitState==='hit'){
+      pCtx.strokeStyle='#072233'; pCtx.lineWidth=3; pCtx.beginPath(); pCtx.moveTo(cx-10,cy-10); pCtx.lineTo(cx-4,cy-4); pCtx.moveTo(cx-10,cy-4); pCtx.lineTo(cx-4,cy-10);
+      pCtx.moveTo(cx+4,cy-10); pCtx.lineTo(cx+10,cy-4); pCtx.moveTo(cx+4,cy-4); pCtx.lineTo(cx+10,cy-10); pCtx.stroke();
+    } else if(portraitState==='dead'){
+      pCtx.fillStyle='#072233'; pCtx.fillRect(cx-12,cy-6,24,28);
+    }
+  }
+
+  // update/draw loops
+  function update(){
+    // dialog state handled separately
+    if(state==='telegraph'){
+      if(telegraph){ telegraph.ticks--; if(telegraph.ticks<=0) spawnFromTelegraph(); }
+    } else if(state==='attack'){
+      // update projectiles
+      for(let p of projectiles){ if(p.vx) p.x += p.vx; if(p.vy) p.y += p.vy; }
+      projectiles = projectiles.filter(p=>p.x>-60 && p.x<W+60 && p.y>-60 && p.y<H+60);
+      // collisions
+      for(let p of projectiles){ if(hitTest(p)){ heart.flash=6; heart.hp--; p._hit=true; playTone(120,0.05,0.08); portraitState='hit'; setTimeout(()=>portraitState='idle',300); }
+        }
+      projectiles = projectiles.filter(p=>!p._hit);
+      if(projectiles.length===0 && telegraph===null){ // attack ended
+        enqueueDialog(["Guardian: That was... invigorating."]); state='dialog';
+      }
+    }
+  }
+
+  function hitTest(p){ const px=heart.x, py=heart.y; const dx=Math.abs(px-p.x), dy=Math.abs(py-p.y); if(p.type==='spike') return Math.abs(px - p.x) < 14 && p.y < BB.y+BB.h; return dx<14 && dy<14; }
+
+  function draw(){ ctx.clearRect(0,0,W,H);
+    // background
+    ctx.fillStyle='#071021'; ctx.fillRect(0,0,W,H);
+
+    // draw battle box
+    ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.strokeRect(BB.x,BB.y,BB.w,BB.h);
+    ctx.fillStyle='rgba(255,255,255,0.02)'; ctx.fillRect(BB.x,BB.y,BB.w,BB.h);
+
+    // draw telegraph if any
+    drawTelegraph();
+
+    // draw projectiles
+    for(let p of projectiles){ ctx.fillStyle = p.color; ctx.font='18px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(p.symbol, p.x, p.y); }
+
+    // draw pixel heart (player)
+    drawPixelHeart(heart.x, heart.y, heart.size, heart.flash>0);
+
+    // HUD
+    ctx.fillStyle='#9fb2c8'; ctx.font='14px monospace'; ctx.fillText(`${boss.name} — Phase ${boss.phase}`, 20, 16);
+    // hp bar
+    const barX=20, barY=20, barW=120; ctx.fillStyle='#2b3b46'; ctx.fillRect(barX,barY+6,barW,8); ctx.fillStyle='#d9534f'; ctx.fillRect(barX,barY+6, Math.max(0,(boss.hp/boss.maxHp)*barW),8);
+    ctx.fillStyle='#9fb2c8'; ctx.fillText(`HP: ${heart.hp}`, W-80, 16);
+
+    // portrait canvas is separate
+    drawPortrait();
+  }
+
+  // menu interactions
+  document.getElementById('fightBtn').addEventListener('click', ()=>{ if(state!=='menu') return; playTone(880,0.05,0.06); enqueueDialog(["You choose FIGHT."]); planTelegraph('fight'); state='telegraph'; });
+  document.getElementById('actBtn').addEventListener('click', ()=>{ if(state!=='menu') return; playTone(660,0.05,0.06); enqueueDialog(["You try to ACT."]); planTelegraph('act'); state='telegraph'; });
+  document.getElementById('itemBtn').addEventListener('click', ()=>{ if(state!=='menu') return; playTone(440,0.05,0.06); enqueueDialog(["You use an ITEM."]); heart.hp = Math.min(6, heart.hp+2); });
+  document.getElementById('mercyBtn').addEventListener('click', ()=>{ if(state!=='menu') return; playTone(520,0.05,0.06); enqueueDialog(["You attempt MERCY..."]); planTelegraph('mercy'); state='telegraph'; });
+
+  // keyboard movement during attack state only
+  window.addEventListener('keydown', e=>{ keys[e.key]=true; if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','a','d','w','s'].includes(e.key)) e.preventDefault(); });
+  window.addEventListener('keyup', e=>{ keys[e.key]=false; });
+
+  // allow movement only while in 'attack'
+  function handleMovement(){ if(state!=='attack') return; if(keys['ArrowLeft']||keys['a']) heart.x -= 4; if(keys['ArrowRight']||keys['d']) heart.x += 4; if(keys['ArrowUp']||keys['w']) heart.y -=4; if(keys['ArrowDown']||keys['s']) heart.y +=4; heart.x = Math.max(BB.x+8, Math.min(BB.x+BB.w-8, heart.x)); heart.y = Math.max(BB.y+8, Math.min(BB.y+BB.h-8, heart.y)); }
+
+  // main loop
+  function mainLoop(){ handleMovement(); update(); draw(); requestAnimationFrame(mainLoop); }
+
+  // start with intro dialog
+  enqueueDialog(["Guardian: \"Who disturbs my rest?\"","Guardian: \"I will test your resolve.\""]);
+
+  mainLoop();
+  </script>
+</body>
+</html>
