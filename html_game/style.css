@@ -1,0 +1,9 @@
+*{box-sizing:border-box;font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+body{background:#0f172a;color:#e6eef8;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}
+.container{width:780px;max-width:95%;text-align:center}
+.hud{display:flex;gap:16px;justify-content:center;align-items:center;margin-bottom:12px}
+.game-area{position:relative;background:linear-gradient(180deg,#071029,#0b1220);height:420px;border-radius:8px;overflow:hidden;border:2px solid rgba(255,255,255,0.04)}
+.target{position:absolute;width:60px;height:60px;background:#ff0066;border-radius:8px;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;cursor:pointer;box-shadow:0 6px 18px rgba(255,0,102,0.18)}
+.message{margin-top:10px;font-size:18px}
+#startBtn{padding:8px 14px;border-radius:6px;border:none;background:#06b6d4;color:#042028;font-weight:600;cursor:pointer}
+#startBtn:active{transform:translateY(1px)}
